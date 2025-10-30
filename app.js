@@ -63,13 +63,19 @@ app.get('/viewData', (req, res) => {
 
   let filtered = cleanListings.filter(l => {
     if (searchId && l.id !== searchId) return false;
-    if (searchName && !l.name.toLowerCase().includes(searchName)) return false;
-    // Exclude listings with missing/invalid price when either minPrice or maxPrice is set
-    if ((minPrice !== null || maxPrice !== null) && (l.price === null || isNaN(l.price))) return false;
-    if (minPrice !== null && l.price < minPrice) return false;
-    if (maxPrice !== null && l.price > maxPrice) return false;
+  if (searchName && !l.name.toLowerCase().includes(searchName)) return false;
+  // Exclude invalid price if either filter is set
+  if ((minPrice !== null || maxPrice !== null) && (l.price === null || isNaN(l.price))) return false;
+  // If only minPrice, show > minPrice
+  if (minPrice !== null && maxPrice === null && l.price <= minPrice) return false;
+  // If only maxPrice, show < maxPrice
+  if (maxPrice !== null && minPrice === null && l.price >= maxPrice) return false;
+  // If both provided, show between
+  if (minPrice !== null && maxPrice !== null && (l.price <= minPrice || l.price >= maxPrice)) return false;
+  // For /viewDataclean
+  // if (!l.name || l.name.trim() === "") return false; // Include, if required for clean
 
-    return true;
+  return true;
   });
 
 
@@ -88,6 +94,44 @@ app.get('/viewData', (req, res) => {
   });
 });
 
+app.get('/viewDataclean', (req, res) => {
+  const page = parseInt(req.query.page) || 1;
+  const pageSize = 100;
+  const searchId = (req.query.searchId || "").trim();
+  const searchName = (req.query.searchName || "").trim().toLowerCase();
+  const minPrice = parseFloat(req.query.minPrice) || null;
+  const maxPrice = parseFloat(req.query.maxPrice) || null;
+
+  // Filter first for non-empty name, then apply all other filters
+  let filtered = cleanListings.filter(l => {
+    if (searchId && l.id !== searchId) return false;
+  if (searchName && !l.name.toLowerCase().includes(searchName)) return false;
+  // Exclude invalid price if either filter is set
+  if ((minPrice !== null || maxPrice !== null) && (l.price === null || isNaN(l.price))) return false;
+  // If only minPrice, show > minPrice
+  if (minPrice !== null && maxPrice === null && l.price <= minPrice) return false;
+  // If only maxPrice, show < maxPrice
+  if (maxPrice !== null && minPrice === null && l.price >= maxPrice) return false;
+  // If both provided, show between
+  if (minPrice !== null && maxPrice !== null && (l.price <= minPrice || l.price >= maxPrice)) return false;
+  // For /viewDataclean
+  return true;
+  });
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const start = (page - 1) * pageSize;
+  const pagedListings = filtered.slice(start, start + pageSize);
+
+  res.render('viewDataclean', {
+    title: `Cleaned Airbnb Listings (Page ${page} of ${totalPages})`,
+    listings: pagedListings,
+    page,
+    totalPages,
+    prevPage: page > 1 ? page - 1 : null,
+    nextPage: page < totalPages ? page + 1 : null,
+    query: req.query // For sticky filter fields, just like /viewData
+  });
+});
 // Search by Property ID (form and detail view - GET/POST supports both)
 app.get('/searchid', (req, res) => {
   let id = req.query.id ? req.query.id.trim() : '';
@@ -143,40 +187,7 @@ app.post('/searchname', (req, res) => {
   res.redirect(`/searchname?name=${encodeURIComponent(name)}&page=1`);
 });
 
-app.get('/viewDataclean', (req, res) => {
-  const page = parseInt(req.query.page) || 1;
-  const pageSize = 100;
-  const searchId = (req.query.searchId || "").trim();
-  const searchName = (req.query.searchName || "").trim().toLowerCase();
-  const minPrice = parseFloat(req.query.minPrice) || null;
-  const maxPrice = parseFloat(req.query.maxPrice) || null;
 
-  // Filter first for non-empty name, then apply all other filters
-  let filtered = cleanListings.filter(l => {
-    if (!l.name || l.name.trim() === "") return false;
-    if (searchId && l.id !== searchId) return false;
-    if (searchName && !l.name.toLowerCase().includes(searchName)) return false;
-    if ((minPrice !== null || maxPrice !== null) && (l.price === null || isNaN(l.price))) return false;
-    if (minPrice !== null && l.price < minPrice) return false;
-    if (maxPrice !== null && l.price > maxPrice) return false;
-
-    return true;
-  });
-
-  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
-  const start = (page - 1) * pageSize;
-  const pagedListings = filtered.slice(start, start + pageSize);
-
-  res.render('viewDataclean', {
-    title: `Cleaned Airbnb Listings (Page ${page} of ${totalPages})`,
-    listings: pagedListings,
-    page,
-    totalPages,
-    prevPage: page > 1 ? page - 1 : null,
-    nextPage: page < totalPages ? page + 1 : null,
-    query: req.query // For sticky filter fields, just like /viewData
-  });
-});
 
 // Property detail view
 app.get('/property/:id', (req, res) => {
@@ -192,20 +203,29 @@ app.get('/property/:id', (req, res) => {
 
 // Show the price range form (GET)
 app.get('/viewDataprice', (req, res) => {
-  const min = req.query.min ? parseInt(req.query.min) : '';
-  const max = req.query.max ? parseInt(req.query.max) : '';
+  const min = req.query.min ? parseFloat(req.query.min) : '';
+  const max = req.query.max ? parseFloat(req.query.max) : '';
   const page = parseInt(req.query.page) || 1;
   const pageSize = 20;
   let results = [];
   let errors = [];
 
-  // Only filter if inputs are valid
-  if (min !== '' && max !== '' && min <= max) {
-    results = cleanListings.filter(l =>
-      l.price !== null && l.price >= min && l.price <= max
-    );
-  } else if (min !== '' && max !== '' && min > max) {
-    errors.push({ msg: 'Minimum price must be less than or equal to maximum price.' });
+  // No filter entered: show nothing
+  if (min === '' && max === '') {
+    results = [];
+  } else {
+    results = cleanListings.filter(l => {
+      if (l.price === null || isNaN(l.price)) return false;
+      if (min !== '' && max === '' && l.price <= min) return false; // only min: show > min
+      if (max !== '' && min === '' && l.price >= max) return false; // only max: show < max
+      if (min !== '' && max !== '' && (l.price <= min || l.price >= max)) return false; // both: show between
+      return true;
+    });
+    // Min > Max error
+    if (min !== '' && max !== '' && min > max) {
+      errors.push({ msg: 'Minimum price must be less than or equal to maximum price.' });
+      results = [];
+    }
   }
 
   const totalPages = Math.max(1, Math.ceil(results.length / pageSize));
@@ -222,6 +242,7 @@ app.get('/viewDataprice', (req, res) => {
     totalPages
   });
 });
+
 
 // POST: redirect to GET for queries and paging
 app.post('/viewDataprice',
