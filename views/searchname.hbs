@@ -1,0 +1,51 @@
+<h2>{{title}}</h2>
+<form method="POST">
+  <label>Property Name: <input name="name" value="{{query}}" /></label>
+  <button type="submit">Search</button>
+</form>
+
+{{#if results.length}}
+  <table border="1">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Name</th>
+        <th>Country</th>
+        <th>Price</th>
+        <th>Thumbnail</th>
+        <th>View</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{#each results}}
+        <tr>
+          <td>{{id}}</td>
+          <td>{{NAME}}</td>
+          <td>{{country}}</td>
+          <td>{{price}}</td>
+          <td>
+            {{#if thumbnail}}
+              <img src="{{thumbnail}}" width="70" />
+            {{else}}
+              No image
+            {{/if}}
+          </td>
+          <td>
+            <a href="/property/{{id}}">View</a>
+          </td>
+        </tr>
+      {{/each}}
+    </tbody>
+  </table>
+  <div class="pagination">
+    {{#if (gt page 1)}}
+      <a href="/searchname?name={{query}}&page={{dec page}}">Previous</a>
+    {{/if}}
+    {{#if (lt page totalPages)}}
+      <a href="/searchname?name={{query}}&page={{inc page}}">Next</a>
+    {{/if}}
+    <span>Page {{page}} of {{totalPages}}</span>
+  </div>
+{{else}}
+  <p>No properties found.</p>
+{{/if}}

@@ -1,0 +1,53 @@
+<h2>{{title}}</h2>
+<form method="GET" style="margin-bottom:20px;">
+  Search by ID: 
+  <input type="text" name="searchId" value="{{query.searchId}}">
+  Search by Name: 
+  <input type="text" name="searchName" value="{{query.searchName}}">
+  Price Min: 
+  <input type="number" step="1" name="minPrice" value="{{query.minPrice}}">
+  Price Max: 
+  <input type="number" step="1" name="maxPrice" value="{{query.maxPrice}}">
+  <button type="submit">Search</button>
+</form>
+
+<table border="1">
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>Name</th>
+      <th>Host Name</th>
+      <th>Country</th>
+      <th>Price</th>
+      <th>Photo</th>
+      <th>View</th>
+    </tr>
+  </thead>
+  <tbody>
+    {{#each listings}}
+      <tr {{#if (eq (showName name) "NA")}}style="background: #ffd2d2;"{{/if}}>
+        <td>{{id}}</td>
+        <td>{{showName name}}</td>
+        <td>{{hostname}}</td>
+        <td>{{country}}</td>
+        <td>{{showPrice price}}</td>
+        <td>
+          <img src="{{image}}" width="80" />
+        </td>
+         <td>
+            <a href="/property/{{id}}">View</a>
+          </td>
+      </tr>
+    {{/each}}
+  </tbody>
+</table>
+
+<div class="pagination" >
+  {{#if prevPage}}
+    <a href="/viewData?page={{prevPage}}&searchId={{query.searchId}}&searchName={{query.searchName}}&minPrice={{query.minPrice}}&maxPrice={{query.maxPrice}}">Previous</a>
+  {{/if}}
+  {{#if nextPage}}
+    <a href="/viewData?page={{nextPage}}&searchId={{query.searchId}}&searchName={{query.searchName}}&minPrice={{query.minPrice}}&maxPrice={{query.maxPrice}}">Next</a>
+  {{/if}}
+  <span>Page {{page}} of {{totalPages}}</span>
+</div>

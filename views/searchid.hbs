@@ -1,0 +1,31 @@
+<h2>{{title}}</h2>
+<form method="POST">
+  <label>PropertyID: <input name="PropertyID" /></label>
+  <button type="submit">Search</button>
+</form>
+
+{{#if result}}
+  <div style="margin-top:18px;">
+    {{#if result.thumbnail}}
+      <img src="{{result.thumbnail}}" width="220">
+    {{/if}}
+    <table border="1">
+      {{#each details}}
+        <tr>
+          <th>{{this.[0]}}</th>
+          <td>
+            {{#if (eq this.[0] "images")}}
+              {{#each this.[1]}}
+                <img src="{{this}}" width="70"/>
+              {{/each}}
+            {{else}}
+              {{this.[1]}}
+            {{/if}}
+          </td>
+        </tr>
+      {{/each}}
+    </table>
+  </div>
+{{else}}
+  <div style="color:orange;">No property found.</div>
+{{/if}}

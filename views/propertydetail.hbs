@@ -1,0 +1,29 @@
+<h2>{{title}}</h2>
+{{#if result}}
+  <div>
+    {{#if result.thumbnail}}
+      <img src="{{result.thumbnail}}" width="180" style="margin-bottom:10px">
+    {{/if}}
+    <table border="1">
+      <tbody>
+        {{#each details}}
+          <tr>
+            <th>{{this.[0]}}</th>
+            <td>
+              {{#if (eq this.[0] "images")}}
+                {{#each this.[1]}}
+                  <img src="{{this}}" width="80" style="margin-right:7px">
+                {{/each}}
+              {{else}}
+                {{this.[1]}}
+              {{/if}}
+            </td>
+          </tr>
+        {{/each}}
+      </tbody>
+    </table>
+    <a href="javascript:history.back()" style="display:inline-block;margin-top:15px">Back</a>
+  </div>
+{{else}}
+  <p style="color:orange;">No property found for that ID.</p>
+{{/if}}
